@@ -1,0 +1,26 @@
+[project]
+name = "disco-irtx-example"
+version = "1.0.0"
+description = "This repository contains an example processing pipeline for the Copenhagen living lab in the Horizon Europe project DISCO developed by IRT SystemX."
+authors = [
+    {name = "Sebastian Hörl",email = "hoerl.sebastian@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12,<4.0"
+dependencies = [
+    "snakemake (>=8.27.1,<9.0.0)",
+    "osmium (>=4.0.2,<5.0.0)",
+    "jupyter (>=1.1.1,<2.0.0)",
+    "geopandas (>=1.0.1,<2.0.0)",
+    "pandas (>=2.2.3,<3.0.0)",
+    "shapely (>=2.0.7,<3.0.0)",
+    "pyrosm (>=0.6.2,<0.7.0)",
+    "osmnx (>=2.0.1,<3.0.0)",
+    "scikit-learn (>=1.6.1,<2.0.0)",
+    "pyarrow (>=19.0.1,<20.0.0)",
+]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+package-mode = false

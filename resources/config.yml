@@ -1,0 +1,18 @@
+config:
+  # Defines where in the resources the input OpenStreetMap data is located
+  osm: denmark-latest.osm.pbf
+
+  # Defines where inthe resources the shape of the study area is located
+  study_area: copenhagen.geojson
+
+  # Defines the edge size of the analysis polygons
+  hexagon_size: 300
+
+  # Defines a Euclidean projection for the study area to create planar hexagons
+  projection: EPSG:25832
+
+  # Defines the list of operators that should be analyzed
+  # Each operators needs to have a file in resources/operators/{name}/trajectories.csv
+  operators:
+    - synthetic1
+    - synthetic2

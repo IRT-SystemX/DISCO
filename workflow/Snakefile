@@ -1,0 +1,97 @@
+## This notebook is an example for the logistics trajectory processing models developed
+## by IRT SystemX in the scope of the Horizon Europe project DISCO.
+
+# Prepare configuration
+with open("resources/config.yml") as f:
+    import yaml
+    config = yaml.load(f, yaml.SafeLoader)["config"]
+
+# Cut OpenStreetMap data to the study area
+rule cut_osm:
+    input: 
+        osm="resources/{}".format(config["osm"]),
+        area="resources/{}".format(config["study_area"])
+    output: "results/osm/cut.osm.pbf"
+    conda: "envs/osmium.yml"
+    shell: "osmium extract {input[osm]} -p {input[area]} --overwrite -o {output[0]}"
+
+# Filter road network in OSM data
+rule filter_osm:
+    input: "results/osm/cut.osm.pbf"
+    output: "results/osm/filtered.osm.pbf"
+    conda: "envs/osmium.yml"
+    shell: "osmium tags-filter --overwrite -o {output[0]} {input[0]} w/highway"
+
+# Convert OSM data to a routable network
+rule prepare_network:
+    input: "results/osm/filtered.osm.pbf"
+    output: "results/network/network.graphml"
+    notebook: "notebooks/Prepare network.ipynb"
+
+# Assign stops to the road network nodes
+rule assign_network_nodes:
+    input: 
+        trajectories="resources/operators/{operator}/trajectories.csv",
+        network="results/network/network.graphml"
+    output: "results/operators/{operator}/nodes.parquet"
+    notebook: "notebooks/Assign network nodes.ipynb"
+
+# Route trajectories on the road network
+rule route_trajectories:
+    input: 
+        trajectories="resources/operators/{operator}/trajectories.csv",
+        nodes="results/operators/{operator}/nodes.parquet",
+        network="results/network/network.graphml"
+    output: "results/operators/{operator}/routes.parquet"
+    notebook: "notebooks/Route trajectories.ipynb"
+
+
+# Create a hexagon grid for stop analysis
+rule create_hexagon_grid:
+    input: "resources/{}".format(config["study_area"])
+    params: hexagon_size=config["hexagon_size"], projection=config["projection"]
+    output: "results/hexagons.gpkg"
+    notebook: "notebooks/Create hexagons.ipynb"
+
+# Aggregate stops for plotting on a hexagon grid
+def create_stop_grid_input(wildcards):
+    return ["results/hexagons.gpkg"] + [
+        "resources/operators/{operator}/trajectories.csv".format(operator = operator)
+        for operator in config["operators"]]
+
+rule create_stop_grid:
+    input: create_stop_grid_input
+    output: "results/aggregation/stops.geojson"
+    notebook: "notebooks/Create stop grid.ipynb"
+
+# Aggregate flows for operator
+rule aggregate_flows:
+    input: "results/operators/{operator}/routes.parquet"
+    output: "results/operators/{operator}/flow.parquet"
+    notebook: "notebooks/Aggregate flows.ipynb"
+
+# Create network for plotting
+def create_flow_network_input(wildcards):
+    return ["results/network/network.graphml"] + [
+        "results/operators/{operator}/flow.parquet".format(operator = operator)
+        for operator in config["operators"]]
+
+rule create_flow_network:
+    input: create_flow_network_input
+    output: "results/aggregation/flows.geojson"
+    notebook: "notebooks/Create flow network.ipynb"
+
+# Generate synthetic data for operators
+rule generate_synthetic_operator:
+    input: "resources/synthetic.gpkg"
+    output: "resources/operators/{operator}/trajectories.csv"
+    wildcard_constraints:
+        operator="synthetic[0-9]"
+    params:
+        operator="{operator}", days=12
+    notebook: "notebooks/Generate operator.ipynb"
+
+rule all:
+    input: 
+        "results/aggregation/flows.geojson",
+        "results/aggregation/stops.geojson"
