@@ -1,0 +1,4 @@
+channels:
+  - conda-forge
+dependencies:
+  - osmium-tool=1.17.0
